@@ -17,13 +17,6 @@ impl Token {
     pub fn value(&self) -> Option<f64> {
         self.value
     }
-
-    pub fn neg_value(&mut self) {
-        self.value = match self.value {
-            Some(val) => Some(-val),
-            None => None,
-        };
-    }
 }
 
 pub struct Lexer {
@@ -107,22 +100,4 @@ pub enum TokenType {
     Mult,
     Div,
     Pow,
-}
-
-impl TokenType {
-    pub fn precedence(&self) -> usize {
-        match self {
-            Self::Add | Self::Sub => 1,
-            Self::Mult | Self::Div => 2,
-            Self::Pow => 3,
-            _ => 0,
-        }
-    }
-
-    pub fn is_num(&self) -> bool {
-        match self {
-            Self::Num => true,
-            _ => false,
-        }
-    }
 }

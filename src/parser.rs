@@ -14,21 +14,21 @@ impl Parser {
         Self { tokens, index: 0 }
     }
 
-    fn lookahead(&self) -> Token {
+    fn current_token(&self) -> Token {
         *self.tokens.get(self.index).unwrap()
     }
 
     pub fn parse(&mut self) -> Expr {
         let res = self.expr();
 
-        match self.lookahead().token_type() {
+        match self.current_token().token_type() {
             EOF => return res,
             _ => panic!("Parsing ended before reaching end of calculation"),
         }
     }
 
     fn expr(&mut self) -> Expr {
-        let op = match *self.lookahead().token_type() {
+        let op = match *self.current_token().token_type() {
             TokenType::Num => TokenType::Add,
             TokenType::Sub => {
                 self.eat(Sub);
@@ -43,11 +43,11 @@ impl Parser {
     fn expr_opts(&mut self) -> Vec<ExprOpt> {
         let mut seq = Vec::new();
 
-        while *self.lookahead().token_type() == TokenType::Add
-            || *self.lookahead().token_type() == TokenType::Sub
+        while *self.current_token().token_type() == TokenType::Add
+            || *self.current_token().token_type() == TokenType::Sub
         {
             seq.push(ExprOpt::new(
-                *self.eat(*self.lookahead().token_type()).token_type(),
+                *self.eat(*self.current_token().token_type()).token_type(),
                 self.term(),
             ));
         }
@@ -62,11 +62,11 @@ impl Parser {
     fn term_opts(&mut self) -> Vec<TermOpt> {
         let mut seq = Vec::new();
 
-        while *self.lookahead().token_type() == TokenType::Mult
-            || *self.lookahead().token_type() == TokenType::Div
+        while *self.current_token().token_type() == TokenType::Mult
+            || *self.current_token().token_type() == TokenType::Div
         {
             seq.push(TermOpt::new(
-                *self.eat(*self.lookahead().token_type()).token_type(),
+                *self.eat(*self.current_token().token_type()).token_type(),
                 self.pow(),
             ));
         }
@@ -81,8 +81,8 @@ impl Parser {
     fn pow_opts(&mut self) -> Vec<PowOpts> {
         let mut seq = Vec::new();
 
-        while *self.lookahead().token_type() == TokenType::Pow {
-            self.eat(*self.lookahead().token_type());
+        while *self.current_token().token_type() == TokenType::Pow {
+            self.eat(*self.current_token().token_type());
             let num = self.eat(TokenType::Num);
             seq.push(PowOpts {
                 num: num.value().unwrap(),
@@ -93,7 +93,7 @@ impl Parser {
     }
 
     fn eat(&mut self, token_type: TokenType) -> Token {
-        let mut res = self.lookahead();
+        let mut res = self.current_token();
 
         if *res.token_type() != token_type {
             panic!(

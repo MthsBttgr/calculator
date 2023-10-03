@@ -113,19 +113,27 @@ impl TermOpt {
 
 #[derive(Debug)]
 pub struct Pow {
-    num: f64,
+    // operation: TokenType, This should be added later i think
+    parentheses: Parenthesese,
     pow_opts: Vec<PowOpts>,
 }
 
 impl Pow {
     pub fn new(num: f64, pow_opts: Vec<PowOpts>) -> Self {
-        Self { num, pow_opts }
+        Self {
+            parentheses: Parenthesese {
+                // operation: TokenType::Add,
+                expr: Box::new(None),
+                num: Some(num),
+            },
+            pow_opts,
+        }
     }
 }
 
 impl Eval for Pow {
     fn eval(&self) -> f64 {
-        self.num.powf(self.pow_opts.eval())
+        self.parentheses.eval().powf(self.pow_opts.eval())
     }
 }
 
@@ -149,5 +157,25 @@ impl Eval for Vec<PowOpts> {
         } else {
             return 1.0; // if there is nothing in the vec, return 1, not 0, because everything to the power of 0 is 1.
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Parenthesese {
+    // operation: TokenType,
+    expr: Box<Option<Expr>>, //Box<_> is needed to create indirection since otherwise this is a recursive struct. A pointer has a known size, where an expr does not.
+    num: Option<f64>,
+}
+
+impl Eval for Parenthesese {
+    fn eval(&self) -> f64 {
+        if self.num.is_some() {
+            return self.num.unwrap();
+        }
+        if self.expr.is_some() {
+            return self.expr.as_ref().as_ref().unwrap().eval();
+        }
+
+        panic!("Empty parenthesese"); // This should probably be changed to return 0 in the future, but it is here for debugging purposes
     }
 }
