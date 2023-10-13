@@ -17,6 +17,14 @@ impl Token {
     pub fn value(&self) -> Option<f64> {
         self.value
     }
+
+    pub fn new(token_type: TokenType, value: Option<f64>, start_pos: usize) -> Self {
+        Self {
+            token_type,
+            value,
+            start_pos,
+        }
+    }
 }
 
 pub struct Lexer {
@@ -47,6 +55,8 @@ impl Lexer {
                 '*' => tokens.push(self.make_token(TokenType::Mult)),
                 '/' => tokens.push(self.make_token(TokenType::Div)),
                 '^' => tokens.push(self.make_token(TokenType::Pow)),
+                '(' => tokens.push(self.make_token(TokenType::LeftParen)),
+                ')' => tokens.push(self.make_token(TokenType::RightParen)),
                 _ => panic!("unknown character {} at {}", current_char, self.current_pos),
             }
         }
@@ -57,6 +67,7 @@ impl Lexer {
     }
 
     fn lex_num(&mut self) -> Token {
+        // Create a string with the whole number
         let text: String = self.input[self.current_pos..]
             .chars()
             .take_while(|c| c.is_digit(10) || *c == '.')
@@ -100,4 +111,6 @@ pub enum TokenType {
     Mult,
     Div,
     Pow,
+    LeftParen,
+    RightParen,
 }

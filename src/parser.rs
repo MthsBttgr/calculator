@@ -1,4 +1,4 @@
-use crate::eval::{Expr, ExprOpt, Pow, PowOpts, Term, TermOpt};
+use crate::eval::{Expr, ExprOpt, Parenthesese, Pow, PowOpts, Term, TermOpt};
 use crate::lexer::{
     Token,
     TokenType::{self, *},
@@ -15,7 +15,11 @@ impl Parser {
     }
 
     fn current_token(&self) -> Token {
-        *self.tokens.get(self.index).unwrap()
+        *self.tokens.get(self.index).expect("didn't get token")
+    }
+
+    fn current_token_with_option(&self) -> Option<&Token> {
+        self.tokens.get(self.index)
     }
 
     pub fn parse(&mut self) -> Expr {
@@ -34,7 +38,20 @@ impl Parser {
                 self.eat(Sub);
                 TokenType::Sub
             }
-            _ => panic!("idk, the first character isnt allowed ig"),
+            TokenType::LeftParen => TokenType::Add,
+            // TokenType::LeftParen => {
+            //     let vec = Vec::new();
+
+            //     loop {
+            //         if self.current_token().== TokenType::RightParen {
+
+            //         }
+            //     }
+            // }
+            _ => panic!(
+                "idk, the first character isnt allowed ig. Token: {:#?}",
+                self.current_token()
+            ),
         };
 
         Expr::new(op, self.term(), self.expr_opts())
@@ -75,26 +92,83 @@ impl Parser {
     }
 
     fn pow(&mut self) -> Pow {
-        Pow::new(self.eat(TokenType::Num).value().unwrap(), self.pow_opts())
+        Pow::new(self.parenthesese(), self.pow_opts())
     }
 
     fn pow_opts(&mut self) -> Vec<PowOpts> {
         let mut seq = Vec::new();
 
-        while *self.current_token().token_type() == TokenType::Pow {
+        while *self
+            .current_token_with_option()
+            .expect(&format!(
+                "failed at: {}\n list of tokens: {:#?}",
+                self.index, self.tokens
+            ))
+            .token_type()
+            == TokenType::Pow
+        {
             self.eat(*self.current_token().token_type());
-            let num = self.eat(TokenType::Num);
+            // let num = self.eat(TokenType::Num);
             seq.push(PowOpts {
-                num: num.value().unwrap(),
+                parenthesese: self.parenthesese(),
             });
         }
 
         seq
     }
 
-    fn eat(&mut self, token_type: TokenType) -> Token {
-        let mut res = self.current_token();
+    fn parenthesese(&mut self) -> Parenthesese {
+        let mut num = None;
+        let mut expr = Box::new(None);
 
+        match self.current_token().token_type() {
+            TokenType::Num => num = self.eat(TokenType::Num).value(),
+            TokenType::LeftParen => {
+                self.eat(TokenType::LeftParen);
+                expr = Box::new(Some(self.generate_expr_inside_parenthesese()))
+            }
+            _ => panic!("panicked at unexpected token: {:#?}", self.current_token()),
+        }
+
+        Parenthesese::new(expr, num)
+    }
+
+    fn generate_expr_inside_parenthesese(&mut self) -> Expr {
+        let mut tokens = Vec::new();
+
+        let mut amount_of_inner_parenthesese = 0;
+
+        loop {
+            match self.current_token().token_type() {
+                TokenType::LeftParen => {
+                    tokens.push(self.eat(*self.current_token().token_type()));
+                    amount_of_inner_parenthesese += 1;
+                }
+                TokenType::RightParen => {
+                    if amount_of_inner_parenthesese == 0 {
+                        self.eat(TokenType::RightParen);
+                        break;
+                    } else {
+                        tokens.push(self.eat(*self.current_token().token_type()));
+                        amount_of_inner_parenthesese -= 1;
+                    }
+                }
+                TokenType::EOF => panic!(
+                    "{}",
+                    format!("No matching right parenthese. index: {}", self.index)
+                ),
+                //TokenType::LeftParen => //self.generate_expr_inside_parenthesese(),
+                _ => tokens.push(self.eat(*self.current_token().token_type())),
+            }
+        }
+
+        tokens.push(Token::new(TokenType::EOF, None, tokens.len()));
+
+        Parser::new(tokens).expr()
+    }
+
+    fn eat(&mut self, token_type: TokenType) -> Token {
+        let res = self.current_token();
         if *res.token_type() != token_type {
             panic!(
                 "expected {:#?}, got {:#?} at position {:#?}, eat() function",

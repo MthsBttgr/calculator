@@ -114,18 +114,14 @@ impl TermOpt {
 #[derive(Debug)]
 pub struct Pow {
     // operation: TokenType, This should be added later i think
-    parentheses: Parenthesese,
+    parenthesese: Parenthesese,
     pow_opts: Vec<PowOpts>,
 }
 
 impl Pow {
-    pub fn new(num: f64, pow_opts: Vec<PowOpts>) -> Self {
+    pub fn new(parenthesese: Parenthesese, pow_opts: Vec<PowOpts>) -> Self {
         Self {
-            parentheses: Parenthesese {
-                // operation: TokenType::Add,
-                expr: Box::new(None),
-                num: Some(num),
-            },
+            parenthesese,
             pow_opts,
         }
     }
@@ -133,27 +129,27 @@ impl Pow {
 
 impl Eval for Pow {
     fn eval(&self) -> f64 {
-        self.parentheses.eval().powf(self.pow_opts.eval())
+        self.parenthesese.eval().powf(self.pow_opts.eval())
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct PowOpts {
-    pub num: f64,
+    pub parenthesese: Parenthesese,
 }
 
 impl Eval for Vec<PowOpts> {
     fn eval(&self) -> f64 {
         if self.len() > 1 {
-            let mut temp = self[0].num;
+            let mut temp = self[0].parenthesese.eval();
 
             for i in 1..self.len() {
-                temp = temp.powf(self[i].num)
+                temp = temp.powf(self[i].parenthesese.eval())
             }
 
             return temp;
         } else if self.len() == 1 {
-            return self[0].num;
+            return self[0].parenthesese.eval();
         } else {
             return 1.0; // if there is nothing in the vec, return 1, not 0, because everything to the power of 0 is 1.
         }
@@ -165,6 +161,12 @@ pub struct Parenthesese {
     // operation: TokenType,
     expr: Box<Option<Expr>>, //Box<_> is needed to create indirection since otherwise this is a recursive struct. A pointer has a known size, where an expr does not.
     num: Option<f64>,
+}
+
+impl Parenthesese {
+    pub fn new(expr: Box<Option<Expr>>, num: Option<f64>) -> Self {
+        Self { expr, num }
+    }
 }
 
 impl Eval for Parenthesese {
